@@ -86,7 +86,7 @@ stepper_load_next(struct stepper *s, uint32_t min_next_time)
         } else {
             s->time.waketime = s->next_step_time;
         }
-        s->count = m->count * 2;
+        s->count = (uint32_t)m->count * 2;
     }
     if (m->flags & MF_DIR) {
         s->position = -s->position + m->count;
@@ -239,7 +239,7 @@ command_reset_step_clock(uint32_t *args)
 DECL_COMMAND(command_reset_step_clock, "reset_step_clock oid=%c clock=%u");
 
 // Return the current stepper position.  Caller must disable irqs.
-static uint32_t
+uint32_t
 stepper_get_position(struct stepper *s)
 {
     uint32_t position = s->position;

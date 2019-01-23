@@ -205,6 +205,8 @@ class ToolHead:
         self.mcu = self.all_mcus[0]
         self.move_queue = MoveQueue()
         self.commanded_pos = [0., 0., 0., 0.]
+        self.commanded_velocity = 0
+        self.captured_pos = None
         self.printer.register_event_handler("klippy:shutdown",
                                             self._handle_shutdown)
         # Velocity and acceleration control
@@ -263,6 +265,9 @@ class ToolHead:
         gcode.register_command('SET_VELOCITY_LIMIT', self.cmd_SET_VELOCITY_LIMIT,
                                desc=self.cmd_SET_VELOCITY_LIMIT_help)
         gcode.register_command('M204', self.cmd_M204)
+        gcode.register_command(
+            'RECOVER_POSITION', self.cmd_RECOVER_POSITION,
+            desc=self.cmd_RECOVER_POSITION_help)
     # Print time tracking
     def update_move_time(self, movetime):
         self.print_time += movetime
@@ -344,6 +349,9 @@ class ToolHead:
     # Movement commands
     def get_position(self):
         return list(self.commanded_pos)
+    def capture_position(self):
+        self.captured_pos = (
+            list(self.commanded_pos), self.commanded_velocity)
     def set_position(self, newpos, homing_axes=()):
         self._flush_lookahead()
         self.commanded_pos[:] = newpos
@@ -357,6 +365,7 @@ class ToolHead:
         if move.axes_d[3]:
             self.extruder.check_move(move)
         self.commanded_pos[:] = move.end_pos
+        self.commanded_velocity = speed
         self.move_queue.add_move(move)
         if self.print_time > self.need_check_stall:
             self._check_stall()
@@ -468,6 +477,27 @@ class ToolHead:
             accel = gcode.get_float('S', params, above=0.)
         self.max_accel = min(accel, self.config_max_accel)
         self._calc_junction_deviation()
+    cmd_RECOVER_POSITION_help = "Move back to a captured position and velocity"
+    def cmd_RECOVER_POSITION(self, params):
+        gcode = self.printer.lookup_object('gcode')
+        v_sd = self.printer.lookup_object('virtual_sd', None)
+        return_vel = gcode.get_float('RETURN_VELOCITY', params, 50.)
+        if self.captured_pos is not None:
+            pos = self.captured_pos[0]
+            pos[3] = self.commanded_pos[3]
+            captured_vel = self.captured_pos[1]
+            self.move(pos, return_vel)
+            self.wait_moves()
+            gcode.reset_last_position()
+            gcode.run_script_from_command(
+                "G1 F%.6f" % (captured_vel * 60))
+            self.captured_pos = None
+            if v_sd is not None and v_sd.is_active():
+                # Printing from virtual sd, run pause command
+                v_sd.cmd_M24({})
+            else:
+                gcode.respond_info("action:resume")
+
 
 def add_printer_objects(config):
     config.get_printer().add_object('toolhead', ToolHead(config))
