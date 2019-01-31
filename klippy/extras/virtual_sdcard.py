@@ -58,9 +58,7 @@ class VirtualSD:
             progress = float(self.file_position) / self.file_size
         return {'progress': progress}
     def is_active(self):
-        if self.must_pause_work or self.work_timer is not None:
-            return True
-        return False
+        return self.work_timer is not None
     # G-Code commands
     def cmd_error(self, params):
         raise self.gcode.error("SD write not supported")
@@ -127,10 +125,9 @@ class VirtualSD:
         self.file_position = pos
     def cmd_M27(self, params):
         # Report SD print status
-        if self.current_file is None or self.work_timer is None:
-            if not self.must_pause_work:
-                self.gcode.respond("Not SD printing.")
-                return
+        if self.current_file is None:
+            self.gcode.respond("Not SD printing.")
+            return
         self.gcode.respond("SD printing byte %d/%d" % (
             self.file_position, self.file_size))
     # Background work timer

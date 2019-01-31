@@ -50,7 +50,7 @@ class ProbeTemp:
         self.offset_applied = 0.
         if self.sensor_type in thermistor.Sensors:
             params = thermistor.Sensors[self.sensor_type]
-            self.sensor = thermistor.Thermistor(config, params)
+            self.sensor = thermistor.PrinterThermistor(config, params)
         elif config.has_section("thermistor " + self.sensor_type):
             tcfg = config.getsection("thermistor " + self.sensor_type)
             custom_thermistor = thermistor.CustomThermistor(tcfg)

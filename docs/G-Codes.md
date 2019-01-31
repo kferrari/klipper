@@ -297,3 +297,13 @@ enabled.
 The following commands are available when a "filament sensor" config section is enabled.
  - `QUERY_FILAMENT_SENSOR SENSOR=<sensor_name>`: Querys the current status of the filament sensor.  The data displayed on the terminal will depend on the sensor type defined in the confguration.
  - `AUTOLOAD_FILAMENT SENSOR=<sensor_name>`: Starts polling for filament insert detection.  This gcode is only necessary if autoload_on is set to False in the configuration.  Note that this gcode will only take affect if the printer is in a ready or idle state, and will only poll until either an insert is detected or the printer's state changes to printing.
+
+## Pause Resume
+
+The following commands are available when the "pause_resume" config section
+is enabled:
+  - `PAUSE`:  Pauses the current print.  The current position is captured for
+  restoration upon resume.
+  - `RESUME [VELOCITY=<value>]`: Resumes the print from a pause, first restoring
+  the previously captured position.  The VELOCITY parameter determines the speed
+  at which the tool should return to the original captured position.
